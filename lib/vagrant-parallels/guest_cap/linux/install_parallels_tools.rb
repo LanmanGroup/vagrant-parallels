@@ -5,7 +5,19 @@ module VagrantPlugins
 
         def self.install_parallels_tools(machine)
           if ptiagent_usable?(machine)
-            machine.communicate.sudo('ptiagent-cmd --install')
+            begin
+                machine.communicate.sudo('ptiagent-cmd --install')
+            rescue
+                if try <= 0 then
+                  machine.communicate.sudo('yum -y update kernel*')
+                  machine.communicate.sudo('shutdown -r now')
+                  begin
+                    sleep 5
+                  end until machine.communicate.ready?
+                  try = 1
+                  retry
+                end
+            end
           else
             machine.communicate.tap do |comm|
               tools_iso_path = File.expand_path(
